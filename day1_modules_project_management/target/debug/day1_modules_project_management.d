@@ -1,0 +1,1 @@
+C:\Users\johna\Documents\rust_programming_language\day1_modules_project_management\target\debug\day1_modules_project_management.exe: C:\Users\johna\Documents\rust_programming_language\day1_modules_project_management\src\main.rs
