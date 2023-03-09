@@ -20,6 +20,12 @@ enum LinkedList {
     Nil
 }
 
+#[derive(Debug)]
+enum Graph {
+    Node(Rc<Graph>, Payment)
+    Nil
+}
+
 fn main() {
     let payment1 = Payment { name: String::from("John Achanya"), amount: 50000};
     let payment2 = Payment { name: String::from("Joe Achanya"), amount: 100000};
