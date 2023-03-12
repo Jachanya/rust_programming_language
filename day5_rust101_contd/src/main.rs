@@ -139,10 +139,19 @@ fn main() {
             None => println!("The student {:#?} has no locker", student.name)
         }
     }
+
+    // assignment 17
+    display_ul("John Achanya");
 }
 
 // assignment 11
 fn display_grocery(item: &GroceryItem){
     println!("quantity: {}", item.quantity);
     println!("id: {}", item.id);
+}
+
+// assignment 17
+fn display_ul(value: &str){
+    println!("{}", value.to_ascii_uppercase());
+    println!("{}", value.to_ascii_lowercase());
 }
