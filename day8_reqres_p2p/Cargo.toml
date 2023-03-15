@@ -12,5 +12,5 @@ clap = { version = "4.1.6", features = ["derive"] }
 either = "1.8"
 env_logger = "0.10"
 futures = "0.3.27"
-libp2p = { version = "0.39.1"}
+libp2p = { version = "0.51.1" , features = ["async-std", "dns", "kad",  "mplex", "request-response", "tcp", "websocket", "yamux"] }
 multiaddr = { version = "0.17.0" }

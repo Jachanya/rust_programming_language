@@ -1,12 +1,21 @@
 /* I am going to tweak the LibP2p library for the request and response functionality */
 use futures::StreamExt;
+use futures::channel::{mpsc, oneshot};
+use futures::prelude::*;
 
 use libp2p::{
-    development_transport, identity,
+    core::{
+        upgrade::{read_length_prefixed, write_length_prefixed, ProtocolName},
+        Multiaddr,
+    },
+    identity,
     swarm::{SwarmBuilder, SwarmEvent},
     PeerId,
-    core::multiaddr
+    request_response::{self, codec, ProtocolSupport, RequestId, ResponseChannel},
 };
+
+use async_std::io;
+use async_trait::async_trait;
 
 // In order to use request response, we import important modules from libp2p
 
@@ -14,7 +23,7 @@ use libp2p::{
 //     Codec, Behaviour, Config
 // };
 
-use std::{error::Error, time::Duration};
+use std::{error::Error, time::Duration, iter};
 
 // Swarm class contain the state of the network as a whole. We control
 // the entire behaviour of lib p2p using the Swarm. The Swarm struct contains 
@@ -37,10 +46,110 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // configuring our transport layer to be tcp
 
-    let transport = libp2p::development_transport(local_key).await?;
+    // let transport = libp2p::development_transport(local_key).await?;
 
     // In this section, we want to explore the request response behaviour in
     // a p2p network
 
+    let request_response = request_response::Behaviour::new(
+        JsonExchangeCodec(),
+        iter::once((JsonExchangeProtocol(), ProtocolSupport::Full)),
+        Default::default(),
+    );
+
     Ok(())
+}
+
+
+// We have to implement Codec trait for our request response
+#[derive(Debug, Clone)]
+struct JsonExchangeProtocol();
+
+#[derive(Clone)]
+struct JsonExchangeCodec();
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct JsonRequest(String);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct JsonResponse(Vec<u8>);
+
+impl ProtocolName for JsonExchangeProtocol {
+    fn protocol_name(&self) -> &[u8] {
+        "/json-exchange/1".as_bytes()
+    }
+}
+
+
+// libp2p::request_response::codec::Codec
+
+#[async_trait]
+impl codec::Codec for JsonExchangeCodec {
+    type Protocol = JsonExchangeProtocol;
+    type Request = JsonRequest;
+    type Response = JsonResponse;
+
+    async fn read_request<T>(
+        &mut self,
+        _: &JsonExchangeProtocol,
+        io: &mut T,
+    ) -> io::Result<Self::Request>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        let vec = read_length_prefixed(io, 1_000_000).await?;
+
+        if vec.is_empty() {
+            return Err(io::ErrorKind::UnexpectedEof.into());
+        }
+
+        Ok(JsonRequest(String::from_utf8(vec).unwrap()))
+    }
+
+    async fn read_response<T>(
+        &mut self,
+        _: &JsonExchangeProtocol,
+        io: &mut T,
+    ) -> io::Result<Self::Response>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        let vec = read_length_prefixed(io, 500_000_000).await?; // update transfer maximum
+
+        if vec.is_empty() {
+            return Err(io::ErrorKind::UnexpectedEof.into());
+        }
+
+        Ok(JsonResponse(vec))
+    }
+
+    async fn write_request<T>(
+        &mut self,
+        _: &JsonExchangeProtocol,
+        io: &mut T,
+        JsonRequest(data): JsonRequest,
+    ) -> io::Result<()>
+    where
+        T: AsyncWrite + Unpin + Send,
+    {
+        write_length_prefixed(io, data).await?;
+        io.close().await?;
+
+        Ok(())
+    }
+
+    async fn write_response<T>(
+        &mut self,
+        _: &JsonExchangeProtocol,
+        io: &mut T,
+        JsonResponse(data): JsonResponse,
+    ) -> io::Result<()>
+    where
+        T: AsyncWrite + Unpin + Send,
+    {
+        write_length_prefixed(io, data).await?;
+        io.close().await?;
+
+        Ok(())
+    }
 }
