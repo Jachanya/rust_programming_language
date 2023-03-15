@@ -8,9 +8,6 @@ edition = "2021"
 [dependencies]
 async-std = { version = "1.12", features = ["attributes"] }
 async-trait = "0.1"
-clap = { version = "4.1.6", features = ["derive"] }
-either = "1.8"
-env_logger = "0.10"
+env_logger = "0.10.0"
 futures = "0.3.27"
-libp2p = { version = "0.51.1" , features = ["async-std", "dns", "kad",  "mplex", "request-response", "tcp", "websocket", "yamux"] }
-multiaddr = { version = "0.17.0" }
+libp2p = { version = "0.51.1", features = ["async-std", "dns", "gossipsub", "mdns", "mplex", "noise", "macros", "tcp", "websocket", "yamux", "request-response"] }

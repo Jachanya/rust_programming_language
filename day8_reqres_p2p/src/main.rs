@@ -1,7 +1,7 @@
 /* I am going to tweak the LibP2p library for the request and response functionality */
 use futures::StreamExt;
 use futures::channel::{mpsc, oneshot};
-use futures::prelude::*;
+use futures::{prelude::*, select};
 
 use libp2p::{
     core::{
@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // configuring our transport layer to be tcp
 
-    // let transport = libp2p::development_transport(local_key).await?;
+    let transport = libp2p::development_transport(local_key).await?;
 
     // In this section, we want to explore the request response behaviour in
     // a p2p network
@@ -57,7 +57,38 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Default::default(),
     );
 
-    Ok(())
+    // Build the Swarm, connecting the lower layer transport logic with the
+    // higher layer network behaviour logic.
+    let mut swarm = SwarmBuilder::with_async_std_executor(
+        transport,
+        request_response,
+        local_peer_id,
+    )
+    .build();
+
+    // Read full lines from stdin
+    let mut stdin = io::BufReader::new(io::stdin()).lines().fuse();
+
+    // Listen on all interfaces and whatever port the OS assigns.
+    swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
+
+    
+    // Kick it off.
+    loop {
+        select! {
+            line = stdin.select_next_some() => {},
+            event = swarm.select_next_some() => match event {
+                SwarmEvent::NewListenAddr { address, .. } => {
+                    println!("Listening in {address:?}");
+                },
+                SwarmEvent::Behaviour(request_response::Event::Message {peer, message}) => {
+                    println!("{}", peer);
+                    },
+                _ => todo!()
+            }
+            
+        }
+    }
 }
 
 
