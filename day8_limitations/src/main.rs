@@ -5,11 +5,12 @@
 // - SwarmEvent
 // - Traits, Generics and Lifetime
 // - Message passing between thread
-// - Enum
+// - Enum          ******
 // - Structs       ******
 // - Select!
 // - Defining new type using the "Type" Keyword
 // - Patterns and matching
+// - Futures
 
 /* I will be learning Enum and Structs the rest of the day */
 
